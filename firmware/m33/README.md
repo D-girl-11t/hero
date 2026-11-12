@@ -11,20 +11,20 @@ pause at zero before reversing, and a 500 ms command watchdog.
 | `src/control.c/.h` | Slew limit, safe reversal, watchdog. No SDK calls |
 | `src/motor_hw.c/.h` | Pins and TPM PWM through the MCUXpresso SDK drivers |
 | `src/hero_board.h` | Pin map, PWM frequency, RPMsg endpoint and name |
-| `test/` | Host build: unit tests and `fake_m33`, the same logic over a pty |
+| `test/` | Host build: unit tests and `m33_sim`, the same logic over a pty |
 
 ## Test on a PC (no board needed)
 
 ```sh
-make -C test          # builds test_firmware and fake_m33
+make -C test          # builds test_firmware and m33_sim
 ./test/test_firmware  # 35 checks: parser, line splitting, ramp, reversal, watchdog
 ```
 
-`fake_m33` runs `protocol.c` and `control.c` on the PC and talks over a
+`m33_sim` runs `protocol.c` and `control.c` on the PC and talks over a
 pseudo-terminal, so the Linux app can be tested against the real firmware logic:
 
 ```sh
-./test/fake_m33 --pty -v      # prints e.g. /dev/pts/7
+./test/m33_sim --pty -v      # prints e.g. /dev/pts/7
 HERO_MOTOR_BACKEND=rpmsg HERO_RPMSG_DEV=/dev/pts/7 python3 ../../linux/hero/hero.py
 ```
 

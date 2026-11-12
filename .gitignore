@@ -221,6 +221,6 @@ __marimo__/
 
 # Hero host builds
 firmware/m33/test/test_firmware
-firmware/m33/test/fake_m33
+firmware/m33/test/m33_sim
 firmware/m33/build*/
 *.elf

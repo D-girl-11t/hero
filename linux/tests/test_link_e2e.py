@@ -1,7 +1,7 @@
-"""End to end without the board: the app talks RPMsg protocol to fake_m33,
+"""End to end without the board: the app talks RPMsg protocol to m33_sim,
 which runs the M33 firmware's own protocol.c and control.c, through a pty.
 
-Build the fake first:  make -C firmware/m33/test
+Build the simulator first:  make -C firmware/m33/test
 """
 import json
 import os
@@ -14,7 +14,7 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'hero'))
-FAKE = os.path.join(HERE, '..', '..', 'firmware', 'm33', 'test', 'fake_m33')
+SIM = os.path.join(HERE, '..', '..', 'firmware', 'm33', 'test', 'm33_sim')
 
 from motor_link import RpmsgMotors  # noqa: E402
 
@@ -28,13 +28,13 @@ def wait_for(cond, timeout=3.0):
     return False
 
 
-@unittest.skipUnless(os.path.exists(FAKE), 'run `make -C firmware/m33/test` first')
-class FakeM33Case(unittest.TestCase):
+@unittest.skipUnless(os.path.exists(SIM), 'run `make -C firmware/m33/test` first')
+class M33SimCase(unittest.TestCase):
     def setUp(self):
         master, slave = os.openpty()
         import tty
         tty.setraw(slave)
-        self.fake = subprocess.Popen([FAKE, '--fd', str(master)], pass_fds=(master,))
+        self.sim = subprocess.Popen([SIM, '--fd', str(master)], pass_fds=(master,))
         os.close(master)
         self.dev = os.ttyname(slave)
         self.slave = slave                                   # keep the pty open for the test
@@ -43,15 +43,15 @@ class FakeM33Case(unittest.TestCase):
 
     def tearDown(self):
         self.link.close()
-        self.fake.kill()
-        self.fake.wait()
+        self.sim.kill()
+        self.sim.wait()
         os.close(self.slave)
 
     def status(self):
         return self.link.status()
 
 
-class LinkTests(FakeM33Case):
+class LinkTests(M33SimCase):
     def test_ping_and_link_up(self):
         self.assertTrue(wait_for(lambda: self.status()['firmware']))
         self.assertIn('hero-m33', self.status()['firmware'])
@@ -89,20 +89,23 @@ class LinkTests(FakeM33Case):
 
 
 class AppTests(unittest.TestCase):
-    """The board's app (hero.py) with motors going to fake_m33 over the pty."""
+    """The board's app (hero.py) with motors going to m33_sim over the pty."""
 
     @classmethod
     def setUpClass(cls):
         master, slave = os.openpty()
         import tty
         tty.setraw(slave)
-        cls.fake = subprocess.Popen([FAKE, '--fd', str(master)], pass_fds=(master,))
+        cls.sim = subprocess.Popen([SIM, '--fd', str(master)], pass_fds=(master,))
         os.close(master)
         cls.slave = slave
         os.environ.update(HERO_MOTOR_BACKEND='rpmsg', HERO_RPMSG_DEV=os.ttyname(slave), HERO_SPEED='60')
         import importlib
-        import hero as app
-        cls.app = importlib.reload(app)          # module-level M picks up the env above
+        if 'hero' in sys.modules:                # already imported: rebuild M with the env above
+            app = importlib.reload(sys.modules['hero'])
+        else:                                    # first import builds M with the env above
+            import hero as app
+        cls.app = app
         from http.server import ThreadingHTTPServer
         cls.srv = ThreadingHTTPServer(('127.0.0.1', 0), app.H)
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
@@ -112,8 +115,8 @@ class AppTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.srv.shutdown()
         cls.app.M.link.close()
-        cls.fake.kill()
-        cls.fake.wait()
+        cls.sim.kill()
+        cls.sim.wait()
         os.close(cls.slave)
 
     def setUp(self):
@@ -137,6 +140,7 @@ class AppTests(unittest.TestCase):
         s = self.get('/api/state')
         self.assertEqual(s['link']['backend'], 'rpmsg')
         self.assertTrue(wait_for(lambda: self.get('/api/state')['link']['link'] == 'up'))
+        self.assertTrue(wait_for(lambda: self.get('/api/state')['link']['firmware']))
         self.assertIn('hero-m33', self.get('/api/state')['link']['firmware'])
 
     def test_move_and_speed_reach_m33(self):

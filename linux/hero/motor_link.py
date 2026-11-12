@@ -106,6 +106,8 @@ class RpmsgMotors:
                 if moving or time.monotonic() - last_status >= STATUS_EVERY_S:
                     last_status = time.monotonic()
                     self._send('st')
+                    if self.version is None:          # no 'pong' yet (M33 still starting): ask again
+                        self._send('ping')
 
     def _rx_loop(self):
         buf = b''

@@ -1,10 +1,10 @@
 /*
- * fake_m33: the M33 firmware's protocol and control code running on a PC,
+ * m33_sim: the M33 firmware's protocol and control code running on a PC,
  * talking over a pseudo-terminal instead of RPMsg. Lets the Linux app and its
  * tests run without the board:
  *
- *   ./fake_m33 --pty            creates a pty, prints its path, serves it
- *   ./fake_m33 --fd N           serves an already-open fd (used by the tests)
+ *   ./m33_sim --pty            creates a pty, prints its path, serves it
+ *   ./m33_sim --fd N           serves an already-open fd (used by the tests)
  *
  * Every 10 ms it runs control_tick() exactly like control_task on the M33.
  */
@@ -22,7 +22,7 @@
 #include "../src/control.h"
 #include "../src/protocol.h"
 
-#define VERSION "hero-m33 1.0.0 (fake)"
+#define VERSION "hero-m33 1.0.0 (simulator)"
 
 static int fd = -1;
 static control_t ctrl;
@@ -47,7 +47,7 @@ static void on_line(const char *line, size_t len, void *ctx)
     case CMD_ERROR:  n = proto_fmt_err(out, sizeof out, c.error); break;
     case CMD_NONE:   break;
     }
-    if (verbose) fprintf(stderr, "fake_m33 <- %.*s   -> %.*s", (int)len, line, (int)n, n ? out : "\n");
+    if (verbose) fprintf(stderr, "m33_sim <- %.*s   -> %.*s", (int)len, line, (int)n, n ? out : "\n");
     send_str(out, n);
 }
 
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
                 ctrl.tripped = 0;
                 char out[8];
                 send_str(out, proto_fmt_wd(out, sizeof out));
-                if (verbose) fprintf(stderr, "fake_m33: watchdog stop\n");
+                if (verbose) fprintf(stderr, "m33_sim: watchdog stop\n");
             }
         }
     }

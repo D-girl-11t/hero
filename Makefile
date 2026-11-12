@@ -4,11 +4,11 @@ test:
 	./firmware/m33/test/test_firmware
 	python3 -m unittest discover -s linux/tests -v
 
-fake-m33:
-	$(MAKE) -C firmware/m33/test fake_m33
-	./firmware/m33/test/fake_m33 --pty -v
+m33-sim:
+	$(MAKE) -C firmware/m33/test m33_sim
+	./firmware/m33/test/m33_sim --pty -v
 
 clean:
 	$(MAKE) -C firmware/m33/test clean
 
-.PHONY: test fake-m33 clean
+.PHONY: test m33-sim clean

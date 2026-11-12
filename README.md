@@ -12,7 +12,7 @@ talk to Hero, camera and follow mode, and the live status of the M33 motor contr
 ([How to open it](#put-it-on-the-board) · [How to use it](#using-the-app))
 
 <p align="center"><a href="linux/hero/"><img src="docs/img/hero-app.png" alt="The Hero app: drive pad with speed slider, chat box, and the motor controller card showing the RPMsg link up and both motors at 70%" width="760"></a></p>
-<p align="center"><sub>The Hero app driving forward at 70 %. Screenshot taken on a PC against <code>fake_m33</code> (the firmware's own control code), so the camera panel is left out.</sub></p>
+<p align="center"><sub>The Hero app driving forward at 70 %. Screenshot taken on a PC with <code>m33_sim</code>, the M33 simulator that runs the firmware's own control code, so the camera panel is left out.</sub></p>
 
 A two-wheel robot on the **NXP FRDM-IMX93**. Linux on the **Cortex-A55** handles
 the camera, the NPU, speech and the web app. The motors are driven by the
@@ -67,15 +67,15 @@ make test
 ```
 
 This builds the firmware's protocol and control code for the PC and runs its
-35 checks, then runs the 22 Linux tests. The end-to-end tests start `fake_m33`,
+35 checks, then runs the 22 Linux tests. The end-to-end tests start `m33_sim` (the M33 simulator),
 the firmware logic on a pseudo-terminal, and drive it through the real app and
 HTTP API: speed changes, timed moves, text commands, VFH follow around an obstacle, guard stops, and the watchdog stop.
 
-Try the app on a PC against the fake M33:
+Try the app on a PC against the M33 simulator:
 
 ```sh
-make -C firmware/m33/test fake_m33
-./firmware/m33/test/fake_m33 --pty -v            # prints a /dev/pts/N path
+make -C firmware/m33/test m33_sim
+./firmware/m33/test/m33_sim --pty -v            # prints a /dev/pts/N path
 HERO_MOTOR_BACKEND=rpmsg HERO_RPMSG_DEV=/dev/pts/N python3 linux/hero/hero.py
 # open http://localhost:8080
 ```
