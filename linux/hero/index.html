@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero</title>
+<style>
+:root{--bg:#F3F4F6;--card:#FFFFFF;--ink:#14181F;--muted:#5D6675;--line:#D9DDE3;--accent:#E8590C;--accent-ink:#FFFFFF;--ok:#1E8A4C;--stop:#C92A2A;--sunk:#E9ECEF}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1116;--card:#171B22;--ink:#E6E9EE;--muted:#98A1AF;--line:#2A303A;--accent:#FF7A33;--accent-ink:#0E1116;--ok:#4CC584;--stop:#FF6B6B;--sunk:#11151B}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px}
+header h1{margin:0;font-size:28px;letter-spacing:.02em}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent)}
+.dot.down{background:var(--stop)}
+header small{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h2{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px;margin:0 auto}
+button{font:inherit;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:10px;padding:14px 10px;cursor:pointer;touch-action:manipulation}
+button:hover{border-color:var(--ink)}
+button:active{transform:scale(.97)}
+.pad button{font-size:17px;font-weight:600;min-height:64px}
+.pad .go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pad .stop{background:var(--stop);color:#fff;border-color:var(--stop)}
+.dur{display:flex;align-items:center;gap:10px;margin:16px 0 4px}
+.dur input{flex:1}
+.dur b{min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.motors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.motor{border:1px solid var(--line);border-radius:10px;padding:10px}
+.motor .row{display:flex;gap:6px;margin-top:8px}
+.motor .row button{flex:1;padding:10px 4px;font-size:14px}
+.state{font-weight:700;text-transform:capitalize}
+.state.forward{color:var(--ok)}.state.reverse{color:var(--accent)}.state.stop{color:var(--muted)}
+.chat{display:flex;flex-direction:column;height:100%}
+.msgs{flex:1;min-height:260px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px}
+.msg{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.hero{align-self:flex-start;background:var(--sunk);border-bottom-left-radius:4px}
+.msg.err{color:var(--stop)}
+form{display:flex;gap:8px;margin-top:10px}
+form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+form button{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{padding:6px 10px;font-size:13px;border-radius:999px}
+.badges{margin-left:auto;display:flex;gap:6px}
+.badge{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.badge.on{border-color:var(--ok);color:var(--ok)}
+.mic{background:var(--sunk);border-color:var(--line);font-size:20px;padding:0 14px;user-select:none;-webkit-user-select:none}
+.mic.rec{background:var(--stop);border-color:var(--stop);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.6}}
+.msg img{display:block;max-width:100%;max-height:260px;border-radius:8px;margin-top:6px}
+.msg a{color:inherit}
+.msg.think{color:var(--muted);font-style:italic}
+.camcard{grid-column:1/-1}
+.camhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.camhead h2{margin:0;margin-right:auto}
+.camhead button{padding:8px 12px;font-size:14px}
+.cam{position:relative;overflow:hidden;background:#000;border-radius:8px;margin:0 auto;width:min(100%,640px);aspect-ratio:4/3}
+.cam.portrait{width:min(100%,420px);aspect-ratio:3/4}
+.cam img{position:absolute;top:50%;left:50%;width:100%;transform:translate(-50%,-50%) rotate(var(--rot,0deg))}
+.cam.portrait img{width:133.334%}
+.cam canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.camhead{flex-wrap:wrap}
+.camhead select{font:inherit;font-size:14px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink)}
+.camhead button[aria-pressed="true"].tog{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vinfo{font-size:13px;color:var(--muted);margin-top:8px;text-align:center;min-height:18px}
+.cam .note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:16px}
+.ctl{grid-column:1/-1}
+.ctl .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pill{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);text-transform:none;letter-spacing:0;margin-left:6px}
+.pill.up{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.pill.down{background:color-mix(in srgb,var(--stop) 15%,transparent);color:var(--stop)}
+.duty{display:grid;grid-template-columns:3.5em 1fr 3.5em;gap:8px;align-items:center;margin-top:8px;font-size:13px}
+.track{position:relative;height:12px;border-radius:6px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.track .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)}
+.track .bar{position:absolute;top:0;bottom:0;background:var(--ok)}
+.duty b{text-align:right;font-variant-numeric:tabular-nums}
+.sectors{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;margin:10px auto 4px;width:min(100%,640px)}
+.sectors span{height:22px;border-radius:3px;background:color-mix(in srgb,var(--ok) 35%,transparent);position:relative}
+.sectors span.b{background:color-mix(in srgb,var(--stop) 55%,transparent)}
+.sectors span.goal::after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--accent)}
+.sectors span.go::before{content:"";position:absolute;inset:5px 30%;border-radius:2px;background:var(--ink)}
+.axis{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);width:min(100%,640px);margin:6px auto 0;flex-wrap:wrap}
+@media (max-width:760px){.ctl .grid{grid-template-columns:1fr}}
+.log{grid-column:1/-1;font:13px/1.6 ui-monospace,Menlo,monospace;color:var(--muted);max-height:160px;overflow-y:auto}
+@media (max-width:760px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <header><span class="dot" id="dot"></span><h1>Hero</h1><small id="conn">connecting…</small>
+    <div class="badges"><span class="badge" id="bAi" title="Local language model for free-form commands">AI brain</span><span class="badge" id="bVoice" title="Offline speech-to-text">Voice</span></div></header>
+
+  <section class="card">
+    <h2>Drive</h2>
+    <div class="pad">
+      <span></span><button class="go" data-a="forward">▲ Forward</button><span></span>
+      <button data-a="left">◀ Left</button><button class="stop" data-a="stop">■ Stop</button><button data-a="right">Right ▶</button>
+      <span></span><button data-a="reverse">▼ Back</button><span></span>
+    </div>
+    <label class="dur">Speed <input id="speed" type="range" min="20" max="100" step="5" value="60"><b id="speedv">60%</b></label>
+    <label class="dur">Run for <input id="secs" type="range" min="1" max="30" step="1" value="5"><b id="secsv">5 s</b></label>
+    <div class="motors">
+      <div class="motor"><div>Motor A: <span class="state stop" id="sA">stop</span></div>
+        <div class="row"><button data-a="forward" data-m="A">Fwd</button><button data-a="reverse" data-m="A">Back</button><button data-a="stop" data-m="A">Stop</button></div></div>
+      <div class="motor"><div>Motor B: <span class="state stop" id="sB">stop</span></div>
+        <div class="row"><button data-a="forward" data-m="B">Fwd</button><button data-a="reverse" data-m="B">Back</button><button data-a="stop" data-m="B">Stop</button></div></div>
+    </div>
+  </section>
+
+  <section class="card chat">
+    <h2>Talk to Hero</h2>
+    <div class="msgs" id="msgs" aria-live="polite"><div class="msg hero">Hi, I'm Hero. Tell me where to go, like "forward 3 seconds" or "turn left".</div></div>
+    <form id="f"><button type="button" class="mic" id="mic" title="Hold to talk (or hold the M key)" aria-label="Hold to talk">🎤</button><input id="t" placeholder="Tell Hero what to do…" autocomplete="off"><button>Send</button></form>
+    <div class="chips"><button data-say="forward 5 seconds">forward 5 s</button><button data-say="go back for 2 seconds">back 2 s</button>
+      <button data-say="turn left">turn left</button><button data-say="motor A forward 3 s">motor A fwd 3 s</button><button data-say="go forward then come back">forward, then back</button><button data-say="do a little dance">dance</button><button data-say="speed 80">speed 80</button><button data-say="stop">stop</button><button data-say="status">status</button></div>
+  </section>
+
+  <section class="card camcard">
+    <div class="camhead"><h2>Camera</h2>
+      <button id="camLive" aria-pressed="true">⏸ Pause</button><button id="camRot" title="Rotate the view">⟳ Rotate</button><button id="camSnap">📷 Snapshot</button>
+      <button id="vDet" class="tog" aria-pressed="false" title="Find objects with the NPU">◎ Detect</button>
+      <select id="vMode" title="What Hero does with what it sees"><option value="off">Mode: off</option><option value="guard">Guard: stop before hitting things</option><option value="follow">Follow a person</option></select></div>
+    <div class="cam" id="cam"><img id="camImg" alt="Live view from Hero's camera"><canvas id="camBox" width="640" height="480"></canvas><div class="note" id="camNote">starting camera…</div></div>
+    <div class="vinfo" id="vInfo"></div>
+    <div id="vfhWrap" hidden>
+      <div class="sectors" id="sectors" aria-label="Free and blocked directions in front of Hero"></div>
+      <div class="axis"><span>-30° left</span><span>green free · red blocked · ▲ person · ■ path chosen</span><span>right +30°</span></div>
+      <div class="vinfo" id="vReason"></div>
+    </div>
+  </section>
+
+  <section class="card ctl">
+    <h2>Motor controller <span class="pill" id="linkPill">…</span></h2>
+    <div class="grid">
+      <dl class="kv">
+        <dt>Path</dt><dd id="lPath">…</dd>
+        <dt>Firmware</dt><dd id="lFw">…</dd>
+        <dt>Watchdog stops</dt><dd id="lWd">…</dd>
+        <dt>Messages</dt><dd id="lMsg">…</dd>
+      </dl>
+      <div>
+        <div class="duty"><span>Left</span><div class="track"><span class="mid"></span><span class="bar" id="barL"></span></div><b id="dL">0%</b></div>
+        <div class="duty"><span>Right</span><div class="track"><span class="mid"></span><span class="bar" id="barR"></span></div><b id="dR">0%</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card log" id="log"></section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const secs = () => +$('#secs').value;
+$('#secs').oninput = () => $('#secsv').textContent = secs() + ' s';
+const speed = () => +$('#speed').value;
+let speedTouched = 0;
+$('#speed').oninput = () => { $('#speedv').textContent = speed() + '%'; speedTouched = Date.now(); };
+$('#speed').onchange = () => api('/api/move', {speed: speed()}).then(render).catch(offline);
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)} : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+function render(s) {
+  for (const m of ['A', 'B']) { const el = $('#s' + m), v = s.motors[m]; el.textContent = v; el.className = 'state ' + v; }
+  $('#conn').textContent = s.motors.remaining ? `moving · ${s.motors.remaining} s left` : 'online · idle';
+  $('#dot').className = 'dot live'; badges(s.ai); linkRender(s);
+  $('#log').innerHTML = s.log.slice().reverse().map(l => `<div>${l.t}  ${l.text.replace(/</g, '&lt;')}</div>`).join('') || 'No moves yet.';
+}
+const bar = (el, v) => { el.style.left = (v >= 0 ? 50 : 50 + v / 2) + '%'; el.style.width = Math.abs(v) / 2 + '%'; };
+function linkRender(s) {
+  if (!s.link) return;
+  if (s.speed != null && Date.now() - speedTouched > 1500) { $('#speed').value = s.speed; $('#speedv').textContent = s.speed + '%'; }
+  const L = s.link, rp = L.backend === 'rpmsg', pill = $('#linkPill');
+  pill.textContent = rp ? 'RPMsg · ' + L.link : 'GPIO';
+  pill.className = 'pill ' + (L.link === 'up' || L.link === 'local' ? 'up' : 'down');
+  $('#lPath').textContent = rp ? `Linux → ${L.device} → Cortex-M33 (PWM, ramp, 500 ms watchdog)` : 'Linux GPIO pins (full speed only, no watchdog)';
+  $('#lFw').textContent = L.firmware || (rp ? 'no reply yet' : '—');
+  $('#lWd').textContent = L.watchdog_trips ?? '—';
+  $('#lMsg').textContent = L.messages ? `${L.messages.sent} sent · ${L.messages.received} received` : '—';
+  bar($('#barL'), L.applied[0]); bar($('#barR'), L.applied[1]);
+  $('#dL').textContent = L.applied[0] + '%'; $('#dR').textContent = L.applied[1] + '%';
+}
+function badges(ai) {
+  if (!ai) return;
+  $('#bAi').classList.toggle('on', ai.llm); $('#bAi').textContent = ai.llm ? 'AI brain ✓' : 'AI brain off';
+  $('#bVoice').classList.toggle('on', ai.voice); $('#bVoice').textContent = ai.voice ? 'Voice ✓' : 'Voice off';
+}
+function offline() { $('#dot').className = 'dot down'; $('#conn').textContent = 'offline: is the board on?'; }
+function add(text, who, err) {
+  const d = document.createElement('div'); d.className = `msg ${who}${err ? ' err' : ''}`; d.textContent = text;
+  $('#msgs').append(d); $('#msgs').scrollTop = 1e9;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]');
+  if (b) return api('/api/move', {action: b.dataset.a, motor: b.dataset.m || 'both', seconds: secs(), speed: speed()}).then(render).catch(err => add(err.message, 'hero', true));
+  const c = e.target.closest('button[data-say]');
+  if (c) { $('#t').value = c.dataset.say; $('#f').requestSubmit(); }
+});
+async function send(text) {
+  add(text, 'me');
+  const t = setTimeout(() => { const d = document.createElement('div'); d.className = 'msg hero think'; d.id = 'think'; d.textContent = 'thinking…'; $('#msgs').append(d); $('#msgs').scrollTop = 1e9; }, 400);
+  try {
+    const r = await api('/api/say', {text}); add(r.reply, 'hero'); render(r);
+    if (r.photo) {
+      const d = $('#msgs').lastElementChild, a = document.createElement('a'), img = document.createElement('img');
+      a.href = r.photo; a.download = r.photo.split('/').pop(); a.title = 'Download'; img.src = r.photo; img.alt = 'Photo taken by Hero';
+      img.onload = () => { $('#msgs').scrollTop = 1e9; };
+      a.append(img); d.append(a);
+    }
+  }
+  catch (err) { add("Couldn't reach Hero: " + err.message, 'hero', true); }
+  finally { clearTimeout(t); $('#think')?.remove(); }
+}
+$('#f').onsubmit = e => { e.preventDefault(); const text = $('#t').value.trim(); if (!text) return; $('#t').value = ''; send(text); };
+
+// ---- hold to talk: record in the browser, downsample to 16 kHz int16, Hero transcribes it offline
+let rec = null;
+async function micStart() {
+  if (rec) return;
+  if (!navigator.mediaDevices?.getUserMedia) return add('This browser only allows the microphone on http://localhost or https. Use the localhost link.', 'hero', true);
+  rec = {chunks: [], starting: true};
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}});
+    const ctx = new AudioContext(), src = ctx.createMediaStreamSource(stream), node = ctx.createScriptProcessor(4096, 1, 1);
+    node.onaudioprocess = e => rec && rec.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    src.connect(node); node.connect(ctx.destination);
+    Object.assign(rec, {stream, ctx, node, src, rate: ctx.sampleRate, starting: false});
+    $('#mic').classList.add('rec');
+    if (rec.stopAsked) micStop();
+  } catch (err) { rec = null; add('Microphone blocked: ' + err.message, 'hero', true); }
+}
+async function micStop() {
+  if (!rec) return;
+  if (rec.starting) { rec.stopAsked = true; return; }
+  const r = rec; rec = null; $('#mic').classList.remove('rec');
+  r.node.disconnect(); r.src.disconnect(); r.stream.getTracks().forEach(t => t.stop()); r.ctx.close();
+  const len = r.chunks.reduce((n, c) => n + c.length, 0);
+  if (len < r.rate * 0.3) return add('Hold the mic button while you speak.', 'hero', true);
+  const all = new Float32Array(len); let o = 0; for (const c of r.chunks) { all.set(c, o); o += c.length; }
+  const step = r.rate / 16000, out = new Int16Array(Math.floor(len / step));
+  for (let i = 0; i < out.length; i++) { const v = all[Math.floor(i * step)]; out[i] = Math.max(-1, Math.min(1, v)) * 32767; }
+  $('#t').placeholder = 'listening…';
+  try {
+    const res = await fetch('/api/listen', {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body: out.buffer});
+    const j = await res.json(); if (!res.ok) throw new Error(j.error || res.status);
+    if (!j.text) add("I didn't catch that. Try again, a bit closer to the mic.", 'hero', true); else send(j.text);
+  } catch (err) { add('Voice failed: ' + err.message, 'hero', true); }
+  finally { $('#t').placeholder = 'Tell Hero what to do…'; }
+}
+const mic = $('#mic');
+mic.addEventListener('pointerdown', e => { e.preventDefault(); mic.setPointerCapture(e.pointerId); micStart(); });
+mic.addEventListener('pointerup', micStop); mic.addEventListener('pointercancel', micStop);
+document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && e.target.tagName !== 'INPUT' && !e.repeat) micStart(); });
+document.addEventListener('keyup', e => { if ((e.key === 'm' || e.key === 'M') && e.target.tagName !== 'INPUT') micStop(); });
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = {ArrowUp: 'forward', ArrowDown: 'reverse', ArrowLeft: 'left', ArrowRight: 'right', ' ': 'stop'}[e.key];
+  if (k) { e.preventDefault(); api('/api/move', {action: k, seconds: secs(), speed: speed()}).then(render).catch(offline); }
+});
+// ---- camera
+const store = {get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }};
+let rot = +(store.get('hero.rot') || 0), live = true;
+function camRot() { $('#cam').classList.toggle('portrait', rot % 180 !== 0); $('#cam').style.setProperty('--rot', rot + 'deg'); }
+function camLive(on) {
+  live = on; const img = $('#camImg');
+  $('#camLive').textContent = on ? '⏸ Pause' : '▶ Live'; $('#camLive').setAttribute('aria-pressed', on);
+  if (on) { $('#camNote').textContent = 'starting camera…'; $('#camNote').hidden = false; img.src = '/camera.mjpg?t=' + Date.now(); }
+  else { img.removeAttribute('src'); $('#camNote').textContent = 'Paused. The camera is off.'; $('#camNote').hidden = false; }
+}
+// a live MJPEG <img> may never fire 'load', so watch for the first decoded frame instead
+setInterval(() => { if (live && $('#camImg').naturalWidth > 0) $('#camNote').hidden = true; }, 300);
+$('#camImg').onerror = () => { if (live) { $('#camNote').textContent = 'No camera image. Is the USB camera plugged in?'; $('#camNote').hidden = false; } };
+$('#camRot').onclick = () => { rot = (rot + 90) % 360; store.set('hero.rot', rot); camRot(); api('/api/vision', {rot}).catch(() => {}); };
+
+// ---- vision: detections come back already in the rotated (upright) view, 0..1 coordinates
+let V = {detect: false, mode: 'off'};
+function vRender(v) {
+  V = v;
+  $('#vDet').setAttribute('aria-pressed', v.detect || v.mode !== 'off');
+  $('#vMode').value = v.mode;
+  const c = $('#camBox'), box = $('#cam').getBoundingClientRect();
+  c.width = Math.round(box.width); c.height = Math.round(box.height);
+  const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+  g.lineWidth = 2; g.font = '600 13px system-ui, sans-serif'; g.textBaseline = 'top';
+  for (const o of v.objects || []) {
+    const [x0, y0, x1, y1] = o.box, X = x0 * c.width, Y = y0 * c.height, W = (x1 - x0) * c.width, H = (y1 - y0) * c.height;
+    const col = o.label === 'person' ? '#FF7A33' : '#4CC584';
+    g.strokeStyle = col; g.strokeRect(X, Y, W, H);
+    const t = `${o.label} ${Math.round(o.score * 100)}%`, tw = g.measureText(t).width + 8;
+    g.fillStyle = col; g.fillRect(X, Math.max(0, Y - 18), tw, 18); g.fillStyle = '#000'; g.fillText(t, X + 4, Math.max(0, Y - 18) + 2);
+  }
+  const on = v.detect || v.mode !== 'off';
+  $('#vInfo').textContent = !v.ready ? 'Detection model not installed.' : v.error ? v.error :
+    on ? `${(v.objects || []).length} object${(v.objects || []).length === 1 ? '' : 's'} · ${v.fps} fps · ${v.ms} ms per frame on the NPU` + (v.mode === 'follow' ? ' · following' : v.mode === 'guard' ? ' · guard on' : '') : '';
+  const P = v.plan;
+  $('#vfhWrap').hidden = !(P && P.sectors.length);
+  if (P && P.sectors.length) {
+    const near = (a, d) => a != null && Math.abs(a - d) <= 2.01;
+    $('#sectors').innerHTML = P.sectors.map(x => `<span class="${x.blocked ? 'b' : ''} ${near(P.goal_deg, x.deg) ? 'goal' : ''} ${near(P.chosen_deg, x.deg) ? 'go' : ''}" title="${x.deg}°"></span>`).join('');
+    $('#vReason').textContent = `${P.reason} → drv ${P.left} ${P.right}`;
+  }
+}
+$('#vDet').onclick = () => { const on = !(V.detect || V.mode !== 'off'); api('/api/vision', on ? {detect: true, rot} : {detect: false, mode: 'off'}).then(vRender).catch(err => add(err.message, 'hero', true)); };
+$('#vMode').onchange = e => api('/api/vision', {mode: e.target.value, detect: true, rot}).then(vRender).catch(err => add(err.message, 'hero', true));
+async function vPoll() {
+  try { if (!document.hidden && live) vRender(await api('/api/vision')); } catch {}
+  setTimeout(vPoll, V.detect || V.mode !== 'off' ? 150 : 1500);
+}
+api('/api/vision', {rot}).then(vRender).catch(() => {}); vPoll();
+$('#camLive').onclick = () => camLive(!live);
+$('#camSnap').onclick = async () => {
+  try {
+    const r = await fetch('/camera.jpg'); if (!r.ok) throw new Error((await r.json()).error);
+    const bmp = await createImageBitmap(await r.blob()), turn = rot % 180 !== 0;
+    const c = document.createElement('canvas'); c.width = turn ? bmp.height : bmp.width; c.height = turn ? bmp.width : bmp.height;
+    const g = c.getContext('2d'); g.translate(c.width / 2, c.height / 2); g.rotate(rot * Math.PI / 180); g.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+    const a = document.createElement('a'); a.href = c.toDataURL('image/jpeg', 0.92);
+    a.download = 'hero-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.jpg'; a.click();
+  } catch (err) { add('Snapshot failed: ' + err.message, 'hero', true); }
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && live) { $('#camImg').removeAttribute('src'); } else if (!document.hidden && live) camLive(true); });
+camRot(); camLive(true);
+
+async function poll() { try { render(await api('/api/state')); } catch { offline(); } setTimeout(poll, 700); }
+poll();
+</script>
+</body>
+</html>

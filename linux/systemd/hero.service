@@ -1,0 +1,17 @@
+[Unit]
+Description=Hero control app (web UI on :8080, camera, follow mode)
+Wants=hero-m33.service
+After=hero-m33.service network-online.target
+
+[Service]
+WorkingDirectory=/root/hero
+ExecStart=/usr/bin/python3 /root/hero/hero.py
+Environment=HERO_PORT=8080
+# auto = RPMsg to the M33 when /dev/ttyRPMSG* exists, otherwise Linux GPIO
+Environment=HERO_MOTOR_BACKEND=auto
+Environment=HERO_ROTATE=cw
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

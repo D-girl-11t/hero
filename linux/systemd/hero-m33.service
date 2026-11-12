@@ -1,0 +1,18 @@
+[Unit]
+Description=Hero: load the motor firmware onto the Cortex-M33
+# remoteproc creates /dev/ttyRPMSG30 once the firmware announces its endpoint
+After=local-fs.target
+Before=hero.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=FW=hero_m33.elf
+Environment=RP=/sys/class/remoteproc/remoteproc0
+ExecStartPre=-/sbin/modprobe imx_rpmsg_tty
+ExecStart=/bin/sh -c '[ "$(cat $RP/state)" = running ] && echo stop > $RP/state; echo $FW > $RP/firmware && echo start > $RP/state'
+ExecStart=/bin/sh -c 'for i in $(seq 50); do ls /dev/ttyRPMSG* >/dev/null 2>&1 && exit 0; sleep 0.1; done; echo "no /dev/ttyRPMSG* after 5 s" >&2; exit 1'
+ExecStop=/bin/sh -c 'echo stop > $RP/state'
+
+[Install]
+WantedBy=multi-user.target

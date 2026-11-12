@@ -1,0 +1,50 @@
+--- a/arch/arm64/boot/dts/freescale/imx93-11x11-frdm.dts	2026-11-12 11:33:30.002360453 -0500
++++ b/arch/arm64/boot/dts/freescale/imx93-11x11-frdm.dts	2026-11-12 11:33:30.015169395 -0500
+@@ -700,21 +700,19 @@
+ 	status = "okay";
+ };
+ 
+-&gpio2 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_motor>;
+-};
++/*
++ * Hero: the Cortex-M33 firmware owns the motor pins (GPIO2_IO02/03/04/14) and
++ * muxes them itself, so Linux no longer applies a pinctrl for them here.
++ */
+ 
++/* Hero: TPM3_CH2 (GPIO_IO12, pin 32) and TPM4_CH2 (GPIO_IO13, pin 33) make the
++ * motor PWM on the Cortex-M33, so Linux keeps its hands off both timers. */
+ &tpm3 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_led1>;
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &tpm4 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_led2>;
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &usbotg1 {
+@@ -800,15 +798,8 @@
+ };
+ 
+ &iomuxc {
+-	/* L298N motor driver on P11: IN1 pin 3, IN2 pin 5, IN3 pin 7, IN4 pin 8 */
+-	pinctrl_motor: motorgrp {
+-		fsl,pins = <
+-			MX93_PAD_GPIO_IO02__GPIO2_IO02	0x31e
+-			MX93_PAD_GPIO_IO03__GPIO2_IO03	0x31e
+-			MX93_PAD_GPIO_IO04__GPIO2_IO04	0x31e
+-			MX93_PAD_GPIO_IO14__GPIO2_IO14	0x31e
+-		>;
+-	};
++	/* L298N motor driver (IN1-IN4 on pins 3/5/7/8, ENA/ENB on pins 32/33) is
++	 * driven by the Cortex-M33 firmware, which sets up these pads itself. */
+ 
+ 	pinctrl_max98357a: max98357agrp {
+ 	fsl,pins = <
