@@ -2,9 +2,702 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Hero Motor Control</title>
-<meta http-equiv="refresh" content="0; url=docs/">
-<link rel="canonical" href="docs/">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: system floor plan on top (A55 | shared DDR + MU1 | M33), then the robot arena beside the M33's PWM outputs, then the RPMsg traffic log */
+:root{
+  --bg:#edf0f3; --surface:#ffffff; --sunk:#f4f6f8; --ink:#152029; --muted:#5a6775; --line:#d2d9e0;
+  --a55:#2f5fd0; --a55-soft:#e3eafb;
+  --m33:#0f8a6a; --m33-soft:#dbf1e9;
+  --mu:#c4520f; --mu-soft:#fbe8dc;
+  --msg:#6a4fb3; --msg-soft:#ebe5f8;
+  --warn:#b42318; --warn-soft:#fde7e5;
+  --floor:#e4e9ee; --grid:#d5dce3;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1217; --surface:#151c24; --sunk:#10171e; --ink:#e3e8ed; --muted:#93a0ad; --line:#29343f;
+  --a55:#7d9dff; --a55-soft:#1a253f; --m33:#3fcca4; --m33-soft:#112f28;
+  --mu:#ff8f52; --mu-soft:#3a2215; --msg:#b29cf2; --msg-soft:#261e3c; --warn:#ff7b6e; --warn-soft:#3a1917;
+  --floor:#111920; --grid:#1d2731; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1217; --surface:#151c24; --sunk:#10171e; --ink:#e3e8ed; --muted:#93a0ad; --line:#29343f;
+  --a55:#7d9dff; --a55-soft:#1a253f; --m33:#3fcca4; --m33-soft:#112f28;
+  --mu:#ff8f52; --mu-soft:#3a2215; --msg:#b29cf2; --msg-soft:#261e3c; --warn:#ff7b6e; --warn-soft:#3a1917;
+  --floor:#111920; --grid:#1d2731; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.05rem}
+.lede{color:var(--muted);max-width:72ch;margin:6px 0 0}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;margin-bottom:8px}
+.mono{font-family:var(--f-mono)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hint{font-size:.8rem;color:var(--muted)}
+
+.plan-scroll{overflow-x:auto}
+.plan{display:block;width:100%;min-width:680px;height:auto}
+.plan text{font-family:var(--f-body);fill:var(--ink)}
+.plan .mono{font-family:var(--f-mono)}
+.plan .muted{fill:var(--muted)}
+
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+button{font:inherit;font-size:.86rem;font-weight:500;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--a55);outline-offset:2px}
+button.say{font-family:var(--f-mono);font-size:.82rem;border-color:var(--a55);color:var(--a55);background:var(--a55-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.danger[aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+input[type=range]{accent-color:var(--a55);width:120px}
+
+.stage{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px}
+canvas{display:block;width:100%;height:auto;border-radius:9px}
+.arena{background:var(--floor);aspect-ratio:4/3;max-width:100%}
+.readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ro{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--sunk);display:grid;gap:2px;min-width:0}
+.ro b{font-family:var(--f-display);font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.ro small{font-size:.7rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.pins{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.pin{font-family:var(--f-mono);font-size:.72rem;border:1px solid var(--line);border-radius:7px;padding:6px;display:grid;gap:2px;text-align:center;background:var(--sunk)}
+.pin .v{font-weight:600;font-size:.9rem}
+.pin.hi{border-color:var(--m33);color:var(--m33);background:var(--m33-soft)}
+.wd{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.wd .bar{flex:1;height:8px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.wd .fill{height:100%;background:var(--m33);width:0}
+.wd.tripped .fill{background:var(--warn)}
+.state{font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--m33-soft);color:var(--m33)}
+.state.bad{background:var(--warn-soft);color:var(--warn)}
+
+.bottom{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+.log{list-style:none;margin:0;padding:0;font-family:var(--f-mono);font-size:.78rem;display:grid;gap:3px;max-height:260px;overflow:auto}
+.log li{display:grid;grid-template-columns:5.2ch 1fr;gap:8px;padding:3px 6px;border-radius:5px}
+.log li:nth-child(odd){background:var(--sunk)}
+.log .t{color:var(--muted);font-variant-numeric:tabular-nums}
+.log .a{color:var(--a55)} .log .m{color:var(--m33)} .log .w{color:var(--warn)}
+.why{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:.9rem}
+.why b{font-family:var(--f-display)}
+.cam{background:var(--sunk);aspect-ratio:16/9;max-width:100%}
+.vfh{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:2px;margin-top:8px}
+.vfh span{height:22px;border-radius:3px;background:var(--m33-soft);border:1px solid var(--m33);position:relative}
+.vfh span.b{background:var(--warn-soft);border-color:var(--warn)}
+.vfh span.goal::after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--a55)}
+.vfh span.go::before{content:"";position:absolute;inset:5px 28%;border-radius:2px;background:var(--ink)}
+.vfh-axis{display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.cam-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.pipe{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;align-items:stretch}
+.stage-box{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--sunk);display:grid;gap:2px;align-content:start;min-width:0;transition:border-color .12s,background .12s}
+.stage-box b{font-size:.82rem;font-family:var(--f-display)}
+.stage-box span{font-size:.72rem;color:var(--muted);font-family:var(--f-mono);overflow-wrap:anywhere}
+.stage-box.on{border-color:var(--a55);background:var(--a55-soft)}
+.stage-box.on.m{border-color:var(--m33);background:var(--m33-soft)}
+.stage-box .ar{color:var(--muted)}
+@media (max-width:700px){.pipe{grid-template-columns:repeat(3,minmax(0,1fr))}}
+footer{font-size:.8rem;color:var(--muted);max-width:90ch}
+@media (max-width:900px){.stage,.bottom{grid-template-columns:1fr}}
+@media (max-width:480px){.readouts{grid-template-columns:repeat(3,minmax(0,1fr))}.ro b{font-size:1.1rem}.pins{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.repo{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:7px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-weight:600;text-decoration:none}.repo:hover{border-color:var(--ink)}.repo svg{width:18px;height:18px;fill:currentColor}.repo span{font-family:var(--f-mono);font-weight:500;color:var(--muted)}
+</style>
+
 </head>
-<body><p><a href="docs/">Open the Hero interactive demo</a></p></body>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">Interactive model · Hero robot · NXP FRDM-IMX93</span>
+    <h1>Hero Motor Control</h1>
+    <p class="lede">Hero's vision and voice services run on Linux on the <b>Cortex-A55</b>. Its motors are driven by the <b>Cortex-M33</b> running FreeRTOS, which generates the PWM and enforces a safety stop. The two cores talk over <b>RPMsg</b>: messages travel through shared DDR and the <b>MU1</b> mailbox rings the doorbell. Drive the robot below and watch each command cross the chip.</p>
+    <a class="repo" href="https://github.com/D-girl-11t/hero" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Code on GitHub <span>D-girl-11t/hero</span></a>
+  </header>
+
+  <section class="panel" aria-label="System floor plan">
+    <div class="panel-head"><h2>Inside the i.MX93</h2><span class="hint">Purple dots are RPMsg messages. MU1 lights when it rings the other core.</span></div>
+    <div class="plan-scroll"><svg class="plan" id="plan" viewBox="0 0 1000 300" role="img" aria-label="Cortex-A55 Linux services send RPMsg messages through shared DDR vrings and the MU1 mailbox to Cortex-M33 FreeRTOS tasks, which drive the L298N motor driver."></svg></div>
+  </section>
+
+  <section class="panel" aria-label="Drive Hero">
+    <div class="controls">
+      <div class="group">
+        <span class="label">Mode</span>
+        <div class="seg" role="group" aria-label="Mode">
+          <button id="modeVoice" aria-pressed="true">Voice</button>
+          <button id="modeFollow" aria-pressed="false">Follow person</button>
+        </div>
+      </div>
+      <div class="group" id="voiceGroup" aria-label="Voice commands">
+        <span class="label">Say</span>
+        <button class="say" data-say="forward">"forward"</button>
+        <button class="say" data-say="left">"left"</button>
+        <button class="say" data-say="right">"right"</button>
+        <button class="say" data-say="back">"back"</button>
+        <button class="say" data-say="stop">"stop"</button>
+        <label class="group" for="speed"><span class="label">Speed</span><input type="range" id="speed" min="20" max="100" step="5" value="60"><span class="mono" id="speedVal">60%</span></label>
+      </div>
+      <div class="group">
+        <button class="danger" id="freeze" aria-pressed="false" title="Stop Linux from sending commands, as if hero-follow crashed">Freeze Linux services</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <canvas class="arena" id="arena" width="800" height="600" aria-label="Top-down view of Hero in its arena"></canvas>
+      <div style="display:grid;gap:12px;align-content:start;min-width:0">
+        <div>
+          <div class="cam-head"><span class="label">What Hero's camera sees</span><span class="hint mono" id="camInfo">frame 0</span></div>
+          <canvas class="cam" id="cam" width="640" height="360" aria-label="Simulated first-person camera view with detection boxes"></canvas>
+          <div class="vfh" id="vfhBar" aria-label="VFH direction sectors"></div>
+          <div class="vfh-axis"><span>-30° left</span><span>VFH: green free · red blocked · ▲ person · ■ chosen</span><span>right +30°</span></div>
+        </div>
+        <div class="readouts">
+          <div class="ro"><small>Left duty</small><b id="dutyL">0%</b></div>
+          <div class="ro"><small>Right duty</small><b id="dutyR">0%</b></div>
+          <div class="ro"><small>Last command</small><b id="lastCmd" class="mono" style="font-size:.95rem">—</b></div>
+        </div>
+        <div>
+          <div class="panel-head"><span class="label">M33 PWM outputs → L298N ENA / ENB</span><span class="hint">20 kHz, drawn slowed down</span></div>
+          <canvas id="scope" width="600" height="220" aria-label="PWM waveforms for left and right motors"></canvas>
+        </div>
+        <div>
+          <div class="label" style="margin-bottom:6px">Direction pins (from the M33)</div>
+          <div class="pins" id="pins"></div>
+        </div>
+        <div class="wd" id="wd"><span class="label">Watchdog</span><div class="bar"><div class="fill" id="wdFill"></div></div><span class="state" id="wdState">ok</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-head" style="margin-bottom:6px"><span class="label">Each camera frame, 5 times a second</span><span class="hint">The lit stage is where the current frame is.</span></div>
+      <div class="pipe" id="pipe">
+        <div class="stage-box"><b>USB camera</b><span>UVC, 640×480</span></div>
+        <div class="stage-box"><b>V4L2</b><span>/dev/video0 → frame buffer</span></div>
+        <div class="stage-box"><b>Pre-process</b><span>resize 300×300</span></div>
+        <div class="stage-box"><b>Ethos-U65 NPU</b><span>SSD-MobileNet → boxes</span></div>
+        <div class="stage-box"><b>hero-follow / guard</b><span id="pipeDecision">boxes → wheel speeds</span></div>
+        <div class="stage-box m"><b>RPMsg → M33</b><span id="pipeCmd">drv L R</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bottom">
+    <div class="panel">
+      <div class="panel-head"><h2>RPMsg traffic</h2><span class="hint">A55 endpoint 0x400 ↔ M33 endpoint 30, /dev/ttyRPMSG30</span></div>
+      <ol class="log" id="log"></ol>
+    </div>
+    <div class="panel">
+      <h2>Why the motors live on the M33</h2>
+      <ul class="why">
+        <li><b>Steady PWM.</b> A hardware timer on the M33 makes the pulses, so a busy Linux (NPU inference, speech recognition) can't stretch them.</li>
+        <li><b>A safety stop Linux can't break.</b> If commands stop arriving for 500 ms, the M33 stops the motors on its own. Try <i>Freeze Linux services</i>.</li>
+        <li><b>Small, clear messages.</b> Linux sends <span class="mono">drv L R</span> or <span class="mono">stop</span> over <span class="mono">/dev/ttyRPMSG30</span>; the M33 answers with what it applied.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>This page is an interactive model of Hero's motor-control design, running in your browser. It is not a live feed from the robot, and the camera view is drawn from the model, not captured. The collision guard reacts to obstacles the camera detects in front of Hero. Addresses come from the board's device tree: MU1 at <span class="mono">0x44230000</span>, RPMsg vrings at <span class="mono">0xa4000000</span>. Direction pins match Hero's wiring: IN1–IN4 on GPIO_IO02, 03, 04 and 14.</footer>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- floor plan (SVG) ---------------- */
+const NS = 'http://www.w3.org/2000/svg';
+const plan = $('plan');
+function el(tag, attrs, parent = plan, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+function box(x, y, w, h, color, soft) { return el('rect', { x, y, width: w, height: h, rx: 10, fill: soft, stroke: color, 'stroke-width': 1.6 }); }
+function drawPlan() {
+  plan.innerHTML = '';
+  const a55 = css('--a55'), a55s = css('--a55-soft'), m33 = css('--m33'), m33s = css('--m33-soft'), mu = css('--mu'), mus = css('--mu-soft'), line = css('--line'), sunk = css('--sunk'), msg = css('--msg');
+  // A55
+  box(10, 14, 290, 272, a55, a55s);
+  el('text', { x: 26, y: 44, 'font-size': 19, 'font-weight': 700, fill: a55, 'font-family': 'Space Grotesk' }, plan, 'Cortex-A55 · Linux');
+  const svcs = [['hero-voice', 'Vosk + llama.cpp → commands'], ['hero-follow', 'SSD-MobileNet on Ethos-U65'], ['hero-guard', 'collision guard → stop']];
+  svcs.forEach(([n, d], i) => {
+    const g = el('g', { id: 'svc-' + n });
+    el('rect', { x: 26, y: 60 + i * 52, width: 258, height: 42, rx: 7, fill: css('--surface'), stroke: line }, g);
+    el('text', { x: 38, y: 78 + i * 52, 'font-size': 13.5, 'font-weight': 600, class: 'mono' }, g, n);
+    el('text', { x: 38, y: 95 + i * 52, 'font-size': 11.5, class: 'muted' }, g, d);
+  });
+  el('text', { x: 26, y: 238, 'font-size': 12.5, class: 'mono', fill: a55 }, plan, '/dev/ttyRPMSG30');
+  el('text', { x: 26, y: 256, 'font-size': 11.5, class: 'muted' }, plan, 'endpoint 0x400');
+  el('text', { x: 26, y: 274, 'font-size': 11.5, class: 'muted' }, plan, 'remoteproc loads M33 firmware');
+  // shared DDR
+  el('rect', { x: 360, y: 30, width: 280, height: 120, rx: 10, fill: sunk, stroke: line, 'stroke-width': 1.6 });
+  el('text', { x: 376, y: 56, 'font-size': 15, 'font-weight': 700, 'font-family': 'Space Grotesk' }, plan, 'Shared DDR');
+  el('text', { x: 624, y: 56, 'font-size': 11.5, class: 'mono muted', 'text-anchor': 'end' }, plan, 'vrings @ 0xa4000000');
+  el('rect', { x: 376, y: 70, width: 248, height: 28, rx: 6, fill: css('--surface'), stroke: line });
+  el('text', { x: 386, y: 89, 'font-size': 12, class: 'mono muted' }, plan, 'vring0  A55 → M33');
+  el('rect', { x: 376, y: 106, width: 248, height: 28, rx: 6, fill: css('--surface'), stroke: line });
+  el('text', { x: 386, y: 125, 'font-size': 12, class: 'mono muted' }, plan, 'vring1  M33 → A55');
+  // MU1
+  const mub = el('g', { id: 'mu' });
+  el('rect', { id: 'muRect', x: 410, y: 180, width: 180, height: 76, rx: 10, fill: mus, stroke: mu, 'stroke-width': 1.6 }, mub);
+  el('text', { x: 426, y: 206, 'font-size': 15, 'font-weight': 700, fill: mu, 'font-family': 'Space Grotesk' }, mub, 'MU1 mailbox');
+  el('text', { x: 426, y: 225, 'font-size': 11.5, class: 'mono muted' }, mub, '0x44230000');
+  el('text', { x: 426, y: 243, 'font-size': 11.5, class: 'muted' }, mub, 'doorbell only, no data');
+  el('circle', { id: 'muLedA', cx: 420, cy: 270, r: 0 }, mub);
+  // M33
+  box(700, 14, 290, 272, m33, m33s);
+  el('text', { x: 716, y: 44, 'font-size': 19, 'font-weight': 700, fill: m33, 'font-family': 'Space Grotesk' }, plan, 'Cortex-M33 · FreeRTOS');
+  const tasks = [['rpmsg_task', 'endpoint 30 (tty channel)'], ['control_task', 'ramp + TPM3/TPM4 PWM + pins'], ['watchdog', 'no command for 500 ms → stop']];
+  tasks.forEach(([n, d], i) => {
+    const g = el('g', { id: 'task-' + n });
+    el('rect', { x: 716, y: 60 + i * 52, width: 258, height: 42, rx: 7, fill: css('--surface'), stroke: line }, g);
+    el('text', { x: 728, y: 78 + i * 52, 'font-size': 13.5, 'font-weight': 600, class: 'mono' }, g, n);
+    el('text', { x: 728, y: 95 + i * 52, 'font-size': 11.5, class: 'muted' }, g, d);
+  });
+  el('text', { x: 716, y: 238, 'font-size': 12.5, class: 'mono', fill: m33 }, plan, '→ L298N  ENA/ENB (PWM)');
+  el('text', { x: 716, y: 256, 'font-size': 11.5, class: 'muted' }, plan, 'IN1–IN4: GPIO_IO02/03/04/14');
+  el('text', { x: 716, y: 274, 'font-size': 11.5, class: 'muted' }, plan, 'two DC motors, left and right');
+  // wires
+  const wire = d => el('path', { d, fill: 'none', stroke: line, 'stroke-width': 2, 'stroke-dasharray': '4 4' });
+  wire('M300 84 L376 84'); wire('M624 84 L700 84'); wire('M300 120 L376 120'); wire('M624 120 L700 120');
+  wire('M300 218 L410 218'); wire('M590 218 L700 218');
+  el('text', { x: 304, y: 210, 'font-size': 10.5, class: 'muted' }, plan, 'IRQ');
+  el('text', { x: 666, y: 210, 'font-size': 10.5, class: 'muted' }, plan, 'IRQ');
+  el('g', { id: 'packets' });
+}
+drawPlan();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawPlan(); });
+new MutationObserver(drawPlan).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* packets: progress 0..1 along a 3-segment route */
+const packets = [];
+let muFlash = 0, svcFlash = { name: null, t: 0 }, taskFlash = { name: null, t: 0 };
+const ROUTE_TX = [[300, 84], [500, 84], [700, 84]];
+const ROUTE_RX = [[700, 120], [500, 120], [300, 120]];
+function sendPacket(dir) { if (packets.length < 14) packets.push({ dir, p: 0, rang: false }); }
+function lerpRoute(r, p) {
+  const seg = p < .5 ? 0 : 1, q = seg === 0 ? p / .5 : (p - .5) / .5;
+  const [x1, y1] = r[seg], [x2, y2] = r[seg + 1];
+  return [x1 + (x2 - x1) * q, y1 + (y2 - y1) * q];
+}
+function drawPackets(dt) {
+  const g = plan.querySelector('#packets'); if (!g) return;
+  g.innerHTML = '';
+  const msg = css('--msg');
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const k = packets[i];
+    k.p += dt * (reduce ? 3 : 1.6);
+    if (k.p >= .5 && !k.rang) { k.rang = true; muFlash = 1; }
+    if (k.p >= 1) { packets.splice(i, 1); continue; }
+    const [x, y] = lerpRoute(k.dir === 'tx' ? ROUTE_TX : ROUTE_RX, k.p);
+    el('circle', { cx: x, cy: y, r: 7, fill: msg, stroke: css('--surface'), 'stroke-width': 2 }, g);
+  }
+  muFlash = Math.max(0, muFlash - dt * 3);
+  const mr = plan.querySelector('#muRect');
+  if (mr) { mr.setAttribute('stroke-width', 1.6 + muFlash * 4); mr.setAttribute('fill', muFlash > .05 ? css('--mu') : css('--mu-soft')); mr.setAttribute('fill-opacity', muFlash > .05 ? .25 + muFlash * .5 : 1); }
+  for (const [flash, prefix] of [[svcFlash, 'svc-'], [taskFlash, 'task-']]) {
+    flash.t = Math.max(0, flash.t - dt * 2);
+    plan.querySelectorAll(`[id^="${prefix}"] rect`).forEach(r => r.setAttribute('stroke', css('--line')));
+    if (flash.name && flash.t > 0) { const r = plan.querySelector(`#${prefix}${flash.name} rect`); if (r) { r.setAttribute('stroke', prefix === 'svc-' ? css('--a55') : css('--m33')); r.setAttribute('stroke-width', 2.5); } }
+  }
+}
+
+/* ---------------- robot + control model ---------------- */
+const W = 800, H = 600;
+const R = { x: 260, y: 360, th: -Math.PI / 2, L: 0, R: 0 };   // duty -100..100 applied by M33
+const person = { x: 560, y: 220, vx: 38, vy: 26 };
+let mode = 'voice', frozen = false, speed = 60;
+let sinceCmd = 0, tripped = false, lastSentAt = 0, lastFollowKey = '';
+const WD_LIMIT = .5;
+const logItems = [];
+let clock = 0;
+
+function log(cls, txt) {
+  logItems.push({ t: clock.toFixed(1) + 's', cls, txt });
+  if (logItems.length > 80) logItems.shift();
+  const ol = $('log');
+  ol.innerHTML = logItems.map(l => `<li><span class="t">${l.t}</span><span class="${l.cls}">${l.txt}</span></li>`).join('');
+  ol.scrollTop = ol.scrollHeight;
+}
+
+/* A55 → M33 command, delivered after a short transit so the dot is visible */
+function a55Send(service, cmd) {
+  if (frozen) return;
+  svcFlash = { name: service, t: 1 };
+  sendPacket('tx');
+  log('a', `A55 ${service} → ep 30: ${cmd}`);
+  $('lastCmd').textContent = cmd;
+  setTimeout(() => m33Receive(cmd), reduce ? 120 : 330);
+}
+function m33Receive(cmd) {
+  taskFlash = { name: 'rpmsg_task', t: 1 };
+  sinceCmd = 0;
+  let reply;
+  const m = /^drv (-?\d+) (-?\d+)$/.exec(cmd);
+  if (m) {
+    R.L = clampD(+m[1]); R.R = clampD(+m[2]);
+    if (tripped) { tripped = false; }
+    reply = `ok ${R.L} ${R.R}`;
+  } else if (cmd === 'stop') { R.L = 0; R.R = 0; reply = 'ok 0 0'; }
+  else reply = 'err';
+  setTimeout(() => { taskFlash = { name: 'control_task', t: 1 }; }, 120);
+  setTimeout(() => { sendPacket('rx'); log('m', `M33 ep 30 → 0x400: ${reply}`); }, 80);
+}
+const clampD = v => Math.max(-100, Math.min(100, Math.round(v)));
+
+let lastWord = 'stop';
+function voiceCmd(word) {
+  const s = speed;
+  const map = { forward: `drv ${s} ${s}`, back: `drv ${-s} ${-s}`, left: `drv ${Math.round(s * .35)} ${s}`, right: `drv ${s} ${Math.round(s * .35)}`, stop: 'stop' };
+  return map[word];
+}
+function voice(word) {
+  lastWord = word;
+  log('a', `A55 hero-voice heard "${word}"`);
+  a55Send('hero-voice', voiceCmd(word));
+}
+/* slider moved while driving by voice: send the same move again at the new speed */
+let speedTimer = null;
+function speedChanged() {
+  if (mode !== 'voice' || lastWord === 'stop' || frozen || (R.L === 0 && R.R === 0)) return;
+  clearTimeout(speedTimer);
+  speedTimer = setTimeout(() => { log('a', `A55 hero-voice: speed ${speed}%`); a55Send('hero-voice', voiceCmd(lastWord)); }, 120);
+}
+
+/* follow service: steer toward the person, slow near them, 5 commands/s */
+/* VFH: same method as linux/hero/vfh.py. 15 sectors of 4° across the 60° view;
+   an obstacle closer than 1.2 m blocks the sectors it covers, widened by Hero's half-width. */
+const SECTORS = 15, SEC_W = 60 / SECTORS, BLOCK_CM = 120, HALF_W_CM = 30;
+const secCenters = Array.from({ length: SECTORS }, (_, i) => -30 + SEC_W * (i + .5));
+let vfh = { blocked: Array(SECTORS).fill(false), goal: null, chosen: null };
+function buildVfh(goalDeg) {
+  const blocked = Array(SECTORS).fill(false);
+  for (const d of detections) {
+    if (d.kind !== 'obstacle' || d.dist > BLOCK_CM) continue;
+    const c = d.ang * 180 / Math.PI;
+    const hw = Math.atan2(d.size / 2, d.dist) * 180 / Math.PI + Math.atan2(HALF_W_CM, d.dist) * 180 / Math.PI;
+    secCenters.forEach((s, i) => { if (Math.abs(s - c) <= hw + SEC_W / 2) blocked[i] = true; });
+  }
+  let chosen = null, best = Infinity;
+  if (goalDeg != null) secCenters.forEach((s, i) => { if (!blocked[i] && Math.abs(s - goalDeg) < best) { best = Math.abs(s - goalDeg); chosen = s; } });
+  vfh = { blocked, goal: goalDeg, chosen };
+  return vfh;
+}
+function steerTo(angleDeg, base) {           // positive angle = right = left wheel faster
+  const turn = Math.max(-45, Math.min(45, 1.6 * angleDeg));
+  if (Math.abs(angleDeg) > 20) base *= .4;
+  return [clampD(base + turn), clampD(base - turn)];
+}
+
+function followTick() {
+  const seen = detections.find(d => d.kind === 'person');
+  if (!seen) { buildVfh(null); pipeDecision = 'follow: no person → turning to search'; a55Send('hero-follow', 'drv -25 25'); return; }
+  const goal = seen.ang * 180 / Math.PI;
+  const v = buildVfh(goal);
+  if (seen.dist < 80) {
+    if (Math.abs(goal) > 10) { const [l, r] = steerTo(goal, 0); pipeDecision = `follow: close, turning to face (${goal.toFixed(0)}°)`; a55Send('hero-follow', `drv ${l} ${r}`); }
+    else { pipeDecision = `follow: close enough (${(seen.dist / 100).toFixed(1)} m)`; a55Send('hero-follow', 'stop'); }
+    return;
+  }
+  if (v.chosen == null) { pipeDecision = 'follow: every direction blocked → turn away'; a55Send('hero-follow', 'drv -35 35'); return; }
+  const base = seen.dist < 150 ? speed * .6 : speed;
+  const [l, r] = steerTo(v.chosen, base);
+  const around = Math.abs(v.chosen - goal) > SEC_W;
+  pipeDecision = `follow: person ${(seen.dist / 100).toFixed(1)} m at ${goal >= 0 ? '+' : ''}${goal.toFixed(0)}°` + (around ? `, around obstacle via ${v.chosen >= 0 ? '+' : ''}${v.chosen.toFixed(0)}°` : '');
+  a55Send('hero-follow', `drv ${l} ${r}`);
+}
+
+/* camera model: 60° field of view, ~4.5 m range (1 px = 1 cm) */
+const FOV = Math.PI / 3, RANGE = 450;
+const obstacles = [{ x: 470, y: 430, w: 70, h: 60 }, { x: 170, y: 160, w: 60, h: 90 }, { x: 640, y: 130, w: 60, h: 60 }];
+let detections = [], frameNo = 0, lastCam = 0, avoidUntil = 0, pipeCmd = '—', pipeDecision = 'boxes → wheel speeds';
+function look(x, y, radius) {
+  const dx = x - R.x, dy = y - R.y;
+  let ang = Math.atan2(dy, dx) - R.th; ang = Math.atan2(Math.sin(ang), Math.cos(ang));
+  const dist = Math.max(1, Math.hypot(dx, dy) - radius);
+  return (Math.abs(ang) < FOV / 2 && dist < RANGE) ? { ang, dist } : null;
+}
+function cameraFrame() {
+  frameNo++;
+  detections = [];
+  if (mode === 'follow') { const s = look(person.x, person.y, 10); if (s) detections.push({ kind: 'person', ...s }); }
+  for (const o of obstacles) { const s = look(o.x, o.y, Math.min(o.w, o.h) / 2); if (s) detections.push({ kind: 'obstacle', ...s, size: Math.max(o.w, o.h) }); }
+}
+
+/* collision guard: an obstacle the camera sees, close and straight ahead → stop */
+/* collision guard for manual driving: a blocked sector within 12° of straight ahead → stop.
+   In follow mode VFH steers around obstacles instead, so the guard only covers what VFH can't. */
+function guardCheck() {
+  const forward = (R.L + R.R) > 0;
+  if (mode === 'follow') return false;
+  const v = buildVfh(0);
+  const ahead = secCenters.some((s, i) => v.blocked[i] && Math.abs(s) <= 12);
+  if (forward && ahead) {
+    const near = Math.min(...detections.filter(d => d.kind === 'obstacle').map(d => d.dist));
+    log('a', `A55 hero-guard: obstacle ${(near / 100).toFixed(1)} m ahead`);
+    pipeDecision = 'guard: path ahead blocked → stop';
+    a55Send('hero-guard', 'stop');
+    return true;
+  }
+  return false;
+}
+
+function step(dt) {
+  clock += dt;
+  // watchdog runs on the M33 whether or not Linux is alive
+  const moving = R.L !== 0 || R.R !== 0;
+  sinceCmd += dt;
+  if (moving && mode === 'voice' && !frozen) sinceCmd = Math.min(sinceCmd, 0); // voice commands latch; hero-voice sends keepalives
+  if (moving && sinceCmd > WD_LIMIT) {
+    R.L = 0; R.R = 0; tripped = true; taskFlash = { name: 'watchdog', t: 1 };
+    log('w', 'M33 watchdog: no command for 500 ms → motors stopped');
+  }
+  // keepalive from hero-voice while a latched command is active
+  if (mode === 'voice' && !frozen && moving && clock - lastSentAt > .25) { lastSentAt = clock; sinceCmd = 0; }
+
+  // camera frames at 5 Hz feed both services (they stop with the rest of Linux when frozen)
+  if (!frozen && clock - lastCam > .2) {
+    lastCam = clock; cameraFrame();
+    if (!guardCheck()) {
+      if (mode === 'follow') { lastSentAt = clock; followTick(); }
+      else pipeDecision = 'voice mode: guard watching';
+    }
+  }
+
+  // person wanders
+  if (mode === 'follow') {
+    person.x += person.vx * dt; person.y += person.vy * dt;
+    if (person.x < 60 || person.x > W - 60) person.vx *= -1;
+    if (person.y < 60 || person.y > H - 60) person.vy *= -1;
+    if (Math.random() < dt * .4) { person.vx = (Math.random() - .5) * 90; person.vy = (Math.random() - .5) * 90; }
+  }
+
+  // differential drive
+  const maxV = 150, track = 70;
+  const vl = R.L / 100 * maxV, vr = R.R / 100 * maxV;
+  const v = (vl + vr) / 2, w = (vl - vr) / track;   // canvas y points down: positive w turns right, which needs the left wheel faster
+  R.th += w * dt;
+  const nx = Math.max(28, Math.min(W - 28, R.x + Math.cos(R.th) * v * dt));
+  const ny = Math.max(28, Math.min(H - 28, R.y + Math.sin(R.th) * v * dt));
+  const blocked = obstacles.some(o => Math.abs(nx - o.x) < o.w / 2 + 26 && Math.abs(ny - o.y) < o.h / 2 + 26);
+  if (!blocked) { R.x = nx; R.y = ny; }
+}
+
+/* ---------------- drawing ---------------- */
+const arena = $('arena'), ax = arena.getContext('2d');
+const trail = [];
+let wheelPhase = { L: 0, R: 0 };
+function drawArena(dt) {
+  const floor = css('--floor'), grid = css('--grid'), ink = css('--ink'), a55 = css('--a55'), m33 = css('--m33'), warn = css('--warn'), muted = css('--muted');
+  ax.fillStyle = floor; ax.fillRect(0, 0, W, H);
+  ax.strokeStyle = grid; ax.lineWidth = 1;
+  for (let x = 50; x < W; x += 50) { ax.beginPath(); ax.moveTo(x, 0); ax.lineTo(x, H); ax.stroke(); }
+  for (let y = 50; y < H; y += 50) { ax.beginPath(); ax.moveTo(0, y); ax.lineTo(W, y); ax.stroke(); }
+  ax.strokeStyle = muted; ax.lineWidth = 4; ax.strokeRect(2, 2, W - 4, H - 4);
+  ax.fillStyle = muted; ax.font = '500 15px "IBM Plex Mono", monospace';
+  ax.fillText('50 cm grid', 14, H - 14);
+
+  // trail
+  if (!trail.length || Math.hypot(trail[trail.length - 1][0] - R.x, trail[trail.length - 1][1] - R.y) > 6) { trail.push([R.x, R.y]); if (trail.length > 160) trail.shift(); }
+  ax.strokeStyle = m33; ax.globalAlpha = .35; ax.lineWidth = 3; ax.beginPath();
+  trail.forEach(([x, y], i) => i ? ax.lineTo(x, y) : ax.moveTo(x, y)); ax.stroke(); ax.globalAlpha = 1;
+
+  // camera field of view
+  ax.fillStyle = a55; ax.globalAlpha = frozen ? .04 : .09;
+  ax.beginPath(); ax.moveTo(R.x, R.y); ax.arc(R.x, R.y, RANGE, R.th - FOV / 2, R.th + FOV / 2); ax.closePath(); ax.fill(); ax.globalAlpha = 1;
+  // obstacles
+  for (const o of obstacles) {
+    const seenNow = detections.some(d => d.kind === 'obstacle' && Math.abs(d.size - Math.max(o.w, o.h)) < .1 && look(o.x, o.y, Math.min(o.w, o.h) / 2));
+    ax.fillStyle = css('--surface'); ax.strokeStyle = seenNow ? warn : muted; ax.lineWidth = seenNow ? 3 : 2;
+    roundRect(ax, o.x - o.w / 2, o.y - o.h / 2, o.w, o.h, 5); ax.fill(); ax.stroke();
+    ax.fillStyle = muted; ax.font = '500 13px "IBM Plex Sans", sans-serif'; ax.fillText('box', o.x - 12, o.y + 5);
+  }
+
+  // person
+  if (mode === 'follow') {
+    ax.fillStyle = a55; ax.globalAlpha = .15; ax.beginPath(); ax.arc(person.x, person.y, 46, 0, 7); ax.fill(); ax.globalAlpha = 1;
+    ax.fillStyle = a55; ax.beginPath(); ax.arc(person.x, person.y, 13, 0, 7); ax.fill();
+    ax.font = '600 15px "IBM Plex Sans", sans-serif'; ax.fillText('person', person.x + 18, person.y + 5);
+    // line of sight when the camera currently sees the person
+    if (detections.some(d => d.kind === 'person')) {
+      ax.strokeStyle = a55; ax.setLineDash([6, 5]); ax.lineWidth = 2;
+      ax.beginPath(); ax.moveTo(R.x, R.y); ax.lineTo(person.x, person.y); ax.stroke(); ax.setLineDash([]);
+    }
+  }
+
+  // robot
+  ax.save(); ax.translate(R.x, R.y); ax.rotate(R.th);
+  ax.fillStyle = css('--surface'); ax.strokeStyle = ink; ax.lineWidth = 2.5;
+  roundRect(ax, -30, -26, 60, 52, 9); ax.fill(); ax.stroke();
+  // camera
+  ax.fillStyle = a55; ax.beginPath(); ax.arc(24, 0, 6, 0, 7); ax.fill();
+  // wheels with tread marks that move with duty
+  for (const [side, y] of [['L', -31], ['R', 31]]) {
+    const duty = side === 'L' ? R.L : R.R;
+    wheelPhase[side] = (wheelPhase[side] + duty * dt * .35) % 12;
+    ax.fillStyle = ink; roundRect(ax, -20, y - 7, 40, 14, 4); ax.fill();
+    ax.strokeStyle = duty === 0 ? muted : m33; ax.lineWidth = 2;
+    for (let k = -24; k < 24; k += 12) { const xx = k + wheelPhase[side]; if (xx > -18 && xx < 18) { ax.beginPath(); ax.moveTo(xx, y - 5); ax.lineTo(xx, y + 5); ax.stroke(); } }
+  }
+  ax.restore();
+  ax.fillStyle = ink; ax.font = '700 16px "Space Grotesk", sans-serif'; ax.fillText('Hero', R.x - 18, R.y - 44);
+
+  if (tripped) { ax.fillStyle = warn; ax.font = '600 16px "IBM Plex Sans", sans-serif'; ax.fillText('watchdog stop', R.x - 52, R.y + 58); }
+  if (frozen) {
+    ax.fillStyle = warn; ax.globalAlpha = .1; ax.fillRect(0, 0, W, H); ax.globalAlpha = 1;
+    ax.font = '600 18px "IBM Plex Sans", sans-serif'; ax.fillText('Linux services frozen: no commands are being sent', 20, 32);
+  }
+}
+function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+
+const scope = $('scope'), sx = scope.getContext('2d');
+let scopeT = 0;
+function drawScope(dt) {
+  const SW = 600, SH = 220;
+  scopeT += dt * 1.2;
+  sx.fillStyle = css('--sunk'); sx.fillRect(0, 0, SW, SH);
+  sx.strokeStyle = css('--grid'); sx.lineWidth = 1;
+  for (let x = 0; x < SW; x += 50) { sx.beginPath(); sx.moveTo(x, 0); sx.lineTo(x, SH); sx.stroke(); }
+  const rows = [['ENA · left', Math.abs(R.L), 20], ['ENB · right', Math.abs(R.R), 125]];
+  for (const [name, duty, top] of rows) {
+    const hi = top + 18, lo = top + 78, period = 100;
+    sx.strokeStyle = css('--m33'); sx.lineWidth = 2.5; sx.beginPath();
+    for (let x = 0; x <= SW; x++) {
+      const ph = ((x + scopeT * 60) % period) / period;
+      const y = duty > 0 && ph < duty / 100 ? hi : lo;
+      x ? sx.lineTo(x, y) : sx.moveTo(x, y);
+    }
+    sx.stroke();
+    sx.fillStyle = css('--ink'); sx.font = '600 13px "IBM Plex Mono", monospace';
+    sx.fillText(`${name}  ${duty}%`, 8, top + 10);
+  }
+}
+
+/* first-person camera view, drawn from the detections of the latest frame */
+const cam = $('cam'), cx = cam.getContext('2d');
+function drawCam() {
+  const CW = 640, CH = 360, HZ = 150;
+  cx.fillStyle = css('--sunk'); cx.fillRect(0, 0, CW, HZ);
+  cx.fillStyle = css('--floor'); cx.fillRect(0, HZ, CW, CH - HZ);
+  cx.strokeStyle = css('--grid'); cx.lineWidth = 1;
+  for (let k = -6; k <= 6; k++) { cx.beginPath(); cx.moveTo(CW / 2 + k * 18, HZ); cx.lineTo(CW / 2 + k * 160, CH); cx.stroke(); }
+  for (const yy of [170, 200, 245, 310]) { cx.beginPath(); cx.moveTo(0, yy); cx.lineTo(CW, yy); cx.stroke(); }
+  const items = [...detections].sort((a, b) => b.dist - a.dist);
+  for (const d of items) {
+    const sxp = CW / 2 + (d.ang / (FOV / 2)) * (CW / 2);
+    const scale = Math.min(4, 90 / d.dist);
+    const foot = Math.min(CH - 6, HZ + 2400 / d.dist);
+    let bx, by, bw, bh;
+    if (d.kind === 'person') {
+      bh = Math.max(30, 170 * scale); bw = bh * .42;
+      bx = sxp - bw / 2; by = foot - bh;
+      cx.fillStyle = css('--a55'); cx.globalAlpha = .85;
+      cx.beginPath(); cx.arc(sxp, by + bw * .45, bw * .32, 0, 7); cx.fill();
+      roundRect(cx, sxp - bw * .38, by + bw * .85, bw * .76, bh - bw * .85, bw * .2); cx.fill(); cx.globalAlpha = 1;
+    } else {
+      bw = Math.max(24, d.size * 1.6 * scale); bh = bw * .75;
+      bx = sxp - bw / 2; by = foot - bh;
+      cx.fillStyle = css('--surface'); cx.strokeStyle = css('--muted'); cx.lineWidth = 2;
+      cx.fillRect(bx, by, bw, bh); cx.strokeRect(bx, by, bw, bh);
+    }
+    const col = d.kind === 'person' ? css('--a55') : css('--warn');
+    cx.strokeStyle = col; cx.lineWidth = 2.5; cx.strokeRect(bx - 4, by - 4, bw + 8, bh + 8);
+    const label = `${d.kind} · ${(d.dist / 100).toFixed(1)} m`;
+    cx.font = '600 14px "IBM Plex Mono", monospace';
+    const tw = cx.measureText(label).width + 10;
+    const ly = Math.max(0, by - 26);
+    cx.fillStyle = col; cx.fillRect(bx - 4, ly, tw, 20);
+    cx.fillStyle = css('--surface'); cx.fillText(label, bx + 1, ly + 15);
+  }
+  // crosshair at image centre
+  cx.strokeStyle = css('--muted'); cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(CW / 2 - 10, HZ); cx.lineTo(CW / 2 + 10, HZ); cx.moveTo(CW / 2, HZ - 10); cx.lineTo(CW / 2, HZ + 10); cx.stroke();
+  if (!items.length) { cx.fillStyle = css('--muted'); cx.font = '500 16px "IBM Plex Sans", sans-serif'; cx.fillText('nothing detected', 16, 30); }
+  if (frozen) {
+    cx.fillStyle = css('--warn'); cx.globalAlpha = .12; cx.fillRect(0, 0, CW, CH); cx.globalAlpha = 1;
+    cx.font = '600 16px "IBM Plex Sans", sans-serif'; cx.fillText('frozen: Linux is not processing frames', 16, CH - 16);
+  }
+  $('camInfo').textContent = `frame ${frameNo} · ${detections.length} detection${detections.length === 1 ? '' : 's'}`;
+}
+function renderVfh() {
+  const near = (a, s) => a != null && Math.abs(a - s) <= SEC_W / 2 + .01;
+  $('vfhBar').innerHTML = secCenters.map((s, i) =>
+    `<span class="${vfh.blocked[i] ? 'b' : ''} ${near(vfh.goal, s) && mode === 'follow' ? 'goal' : ''} ${near(vfh.chosen, s) && mode === 'follow' ? 'go' : ''}" title="${s.toFixed(0)}°"></span>`).join('');
+}
+function renderPipe() {
+  renderVfh();
+  const boxes = $('pipe').children;
+  const idx = frozen ? -1 : Math.floor(((clock - lastCam) / .2) * 6);
+  for (let i = 0; i < boxes.length; i++) boxes[i].classList.toggle('on', i === idx);
+  $('pipeDecision').textContent = frozen ? 'not running' : pipeDecision;
+  $('pipeCmd').textContent = frozen ? 'nothing sent' : $('lastCmd').textContent;
+}
+
+function renderSide() {
+  $('dutyL').textContent = R.L + '%'; $('dutyR').textContent = R.R + '%';
+  const dirL = Math.sign(R.L), dirR = Math.sign(R.R);
+  // Hero's wiring: forward = IN2 / IN4 high
+  const pins = [['IN1', 'IO02', dirL < 0], ['IN2', 'IO03', dirL > 0], ['IN3', 'IO04', dirR < 0], ['IN4', 'IO14', dirR > 0]];
+  $('pins').innerHTML = pins.map(([n, g, on]) => `<div class="pin ${on ? 'hi' : ''}"><span>${n}</span><span class="v">${on ? 'HIGH' : 'low'}</span><span style="color:var(--muted)">GPIO_${g}</span></div>`).join('');
+  const moving = R.L !== 0 || R.R !== 0;
+  const pct = moving ? Math.min(1, sinceCmd / WD_LIMIT) : 0;
+  $('wdFill').style.width = (pct * 100) + '%';
+  $('wd').classList.toggle('tripped', tripped);
+  $('wdState').textContent = tripped ? 'tripped' : 'ok';
+  $('wdState').className = 'state' + (tripped ? ' bad' : '');
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  step(dt); drawArena(dt); drawCam(); drawScope(dt); drawPackets(dt); renderSide(); renderPipe();
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- controls ---------------- */
+document.querySelectorAll('button.say').forEach(b => b.addEventListener('click', () => { if (mode !== 'voice') setMode('voice'); voice(b.dataset.say); }));
+$('speed').addEventListener('input', e => { speed = +e.target.value; $('speedVal').textContent = speed + '%'; speedChanged(); });
+function setMode(m) {
+  mode = m;
+  $('modeVoice').setAttribute('aria-pressed', m === 'voice');
+  $('modeFollow').setAttribute('aria-pressed', m === 'follow');
+  log('a', m === 'follow' ? 'A55: hero-follow active (person detection on the NPU)' : 'A55: hero-voice active');
+  if (m === 'voice') a55Send('hero-voice', 'stop');
+}
+$('modeVoice').addEventListener('click', () => setMode('voice'));
+$('modeFollow').addEventListener('click', () => setMode('follow'));
+$('freeze').addEventListener('click', () => {
+  frozen = !frozen;
+  $('freeze').setAttribute('aria-pressed', frozen);
+  $('freeze').textContent = frozen ? 'Unfreeze Linux services' : 'Freeze Linux services';
+  log(frozen ? 'w' : 'a', frozen ? 'A55: services frozen, no more RPMsg commands' : 'A55: services running again');
+  if (!frozen) sinceCmd = 0;
+});
+
+// opening state: Hero already driving in follow mode, so the first frame shows the system working
+log('a', 'remoteproc: M33 firmware started');
+log('m', 'M33 → name service: "rpmsg-virtual-tty-channel" at 30');
+log('a', 'A55: imx_rpmsg_tty created /dev/ttyRPMSG30');
+setMode('follow');
+requestAnimationFrame(frame);
+})();
+</script>
+
+
+</body>
 </html>

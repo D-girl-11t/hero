@@ -37,7 +37,7 @@ USB camera → V4L2 → Ethos-U65 NPU (SSD-MobileNet)                   ▼
 | `linux/systemd/` | `hero-m33.service` (loads the firmware via remoteproc), `hero.service` (the app) |
 | `dts/` | Device tree patch: motor pins and TPM3/TPM4 go to the M33 |
 | `docs/protocol.md` | The Linux ↔ M33 message format and timing rules |
-| `docs/index.html` | Interactive browser model of the system (served by GitHub Pages) |
+| `index.html` | Interactive browser model of the system, served by GitHub Pages at https://d-girl-11t.github.io/hero/ |
 
 ## Wiring
 
