@@ -7,6 +7,13 @@ and watch every command travel from Linux on the Cortex-A55 through shared memor
 mailbox to the Cortex-M33, with the camera view, VFH path planning and the PWM signals.
 (The demo is a browser model of the design, not a live feed from the robot.)
 
+**[🤖 Hero app](linux/hero/)**: the web app that runs on the robot and controls it: drive with speed,
+talk to Hero, camera and follow mode, and the live status of the M33 motor controller.
+([How to open it](#put-it-on-the-board) · [How to use it](#using-the-app))
+
+<p align="center"><a href="linux/hero/"><img src="docs/img/hero-app.png" alt="The Hero app: drive pad with speed slider, chat box, and the motor controller card showing the RPMsg link up and both motors at 70%" width="760"></a></p>
+<p align="center"><sub>The Hero app driving forward at 70 %. Screenshot taken on a PC against <code>fake_m33</code> (the firmware's own control code), so the camera panel is left out.</sub></p>
+
 A two-wheel robot on the **NXP FRDM-IMX93**. Linux on the **Cortex-A55** handles
 the camera, the NPU, speech and the web app. The motors are driven by the
 **Cortex-M33** running FreeRTOS, which gets its commands from Linux over **RPMsg**.
