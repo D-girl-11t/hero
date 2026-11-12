@@ -2,7 +2,7 @@
 
 Hero - A Hybrid AI Powered Personal Robotic Companion
 
-**[▶ Interactive demo](https://d-girl-11t.github.io/hero/)**: drive Hero, switch on follow mode,
+**[▶ Interactive demo](https://claude.ai/artifact/GDeijVUiWzRTKcAqaGvNV3)**: drive Hero, switch on follow mode,
 and watch every command travel from Linux on the Cortex-A55 through shared memory and the MU1
 mailbox to the Cortex-M33, with the camera view, VFH path planning and the PWM signals.
 (The demo is a browser model of the design, not a live feed from the robot.)
