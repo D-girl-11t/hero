@@ -363,7 +363,7 @@ const clampD = v => Math.max(-100, Math.min(100, Math.round(v)));
 let lastWord = 'stop';
 function voiceCmd(word) {
   const s = speed;
-  const map = { forward: `drv ${s} ${s}`, back: `drv ${-s} ${-s}`, left: `drv ${Math.round(s * .35)} ${s}`, right: `drv ${s} ${Math.round(s * .35)}`, stop: 'stop' };
+  const map = { forward: `drv ${s} ${s}`, back: `drv ${-s} ${-s}`, left: `drv ${-s} ${s}`, right: `drv ${s} ${-s}`, stop: 'stop' };
   return map[word];
 }
 function voice(word) {
@@ -399,14 +399,15 @@ function buildVfh(goalDeg) {
   return vfh;
 }
 function steerTo(angleDeg, base) {           // positive angle = right = left wheel faster
-  const turn = Math.max(-45, Math.min(45, 1.6 * angleDeg));
+  const lim = Math.round(.75 * speed);                      // turning strength follows the speed slider
+  const turn = Math.max(-lim, Math.min(lim, 1.6 * angleDeg * speed / 60));
   if (Math.abs(angleDeg) > 20) base *= .4;
   return [clampD(base + turn), clampD(base - turn)];
 }
 
 function followTick() {
   const seen = detections.find(d => d.kind === 'person');
-  if (!seen) { buildVfh(null); pipeDecision = 'follow: no person → turning to search'; a55Send('hero-follow', 'drv -25 25'); return; }
+  if (!seen) { buildVfh(null); pipeDecision = 'follow: no person → turning to search'; const k = Math.round(speed * .45); a55Send('hero-follow', `drv ${-k} ${k}`); return; }
   const goal = seen.ang * 180 / Math.PI;
   const v = buildVfh(goal);
   if (seen.dist < 80) {
@@ -414,7 +415,7 @@ function followTick() {
     else { pipeDecision = `follow: close enough (${(seen.dist / 100).toFixed(1)} m)`; a55Send('hero-follow', 'stop'); }
     return;
   }
-  if (v.chosen == null) { pipeDecision = 'follow: every direction blocked → turn away'; a55Send('hero-follow', 'drv -35 35'); return; }
+  if (v.chosen == null) { pipeDecision = 'follow: every direction blocked → turn away'; const k = Math.round(speed * .6); a55Send('hero-follow', `drv ${-k} ${k}`); return; }
   const base = seen.dist < 150 ? speed * .6 : speed;
   const [l, r] = steerTo(v.chosen, base);
   const around = Math.abs(v.chosen - goal) > SEC_W;
@@ -443,7 +444,8 @@ function cameraFrame() {
 /* collision guard for manual driving: a blocked sector within 12° of straight ahead → stop.
    In follow mode VFH steers around obstacles instead, so the guard only covers what VFH can't. */
 function guardCheck() {
-  const forward = (R.L + R.R) > 0;
+  // only when driving forward; turning on the spot away from the box stays allowed
+  const forward = R.L > 0 && R.R > 0;
   if (mode === 'follow') return false;
   const v = buildVfh(0);
   const ahead = secCenters.some((s, i) => v.blocked[i] && Math.abs(s) <= 12);
